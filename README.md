@@ -1,31 +1,16 @@
 # COMP30019 - Project 1 - Ray Tracer
 
-This is your README.md... you should write anything relevant to your
-implementation here.
-
-Please ensure your student details are specified below (*exactly* as on UniMelb
-records):
-
-**Name:** ... \
-**Student Number:** XXXXXXX \
-**Username:** ... \
-**Email:** ...@student.unimelb.edu.au
+**Name:** Dylan Cookson-Mleczko \
+**Student Number:** 1173182 \
+**Username:** dcooksonmlec \
+**Email:** dcooksonmlec@student.unimelb.edu.au
 
 ## Completed stages
-
-Tick the stages bellow that you have completed so we know what to mark (by
-editing README.md). **At most 9** marks can be chosen in total for stage
-three. If you complete more than this many marks, pick your best one(s) to be
-marked!
-
-<!---
-Tip: To tick, place an x between the square brackes [ ], like so: [x]
--->
 
 ##### Stage 1
 
 - [x] Stage 1.1 - Familiarise yourself with the template
-- [ ] Stage 1.2 - Implement vector mathematics
+- [X] Stage 1.2 - Implement vector mathematics
 - [ ] Stage 1.3 - Fire a ray for each pixel
 - [ ] Stage 1.4 - Calculate ray-entity intersections
 - [ ] Stage 1.5 - Output primitives as solid colours
@@ -98,4 +83,3 @@ dotnet run -- -f tests/sample_scene_2.txt -o images/sample_scene_2.png -x 4
 ## References
 
 *You must list any references you used - add them here!*
-
