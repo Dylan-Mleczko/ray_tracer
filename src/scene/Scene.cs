@@ -50,8 +50,16 @@ namespace RayTracer
         /// <param name="outputImage">Image to store render output</param>
         public void Render(Image outputImage)
         {
-            // Begin writing your code here...
+            double z = outputImage.Width / (2 * Math.Tan(Math.PI / 6));
+            for (int x = 0; x < outputImage.Width; x++)
+            {
+                for (int y = 0; y < outputImage.Height; y++)
+                {
+                    outputImage.SetPixel(x, y, new Color(0, 0, 0));
+                    Vector3 coordinates = new Vector3((x - outputImage.Width) / 2, ((outputImage.Height - 1) / 2) - y, z);
+                    Ray ray = new Ray(new Vector3(0, 0, 0), coordinates.Normalized());
+                }
+            }
         }
-
     }
 }

@@ -11,7 +11,7 @@
 
 - [x] Stage 1.1 - Familiarise yourself with the template
 - [X] Stage 1.2 - Implement vector mathematics
-- [ ] Stage 1.3 - Fire a ray for each pixel
+- [X] Stage 1.3 - Fire a ray for each pixel
 - [ ] Stage 1.4 - Calculate ray-entity intersections
 - [ ] Stage 1.5 - Output primitives as solid colours
 
