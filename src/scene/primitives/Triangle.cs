@@ -59,7 +59,7 @@ namespace RayTracer
             {
                 return null;
             }
-            return new RayHit(hitLocation, normal, ray.Direction, this.material);
+            return new RayHit(hitLocation, normal.Normalized(), ray.Direction, this.material);
         }
 
         /// <summary>

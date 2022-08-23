@@ -17,8 +17,8 @@
 
 ##### Stage 2
 
-- [ ] Stage 2.1 - Diffuse materials
-- [ ] Stage 2.2 - Shadow rays
+- [X] Stage 2.1 - Diffuse materials
+- [X] Stage 2.2 - Shadow rays
 - [ ] Stage 2.3 - Reflective materials
 - [ ] Stage 2.4 - Refractive materials
 - [ ] Stage 2.5 - The Fresnel effect

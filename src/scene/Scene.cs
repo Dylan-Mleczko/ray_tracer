@@ -66,28 +66,63 @@ namespace RayTracer
                     foreach (SceneEntity entity in this.entities)
                     {
                         RayHit hit = entity.Intersect(ray);
-                        if (hit != null && (hit?.Position.LengthSq() < nearestHit?.Position.LengthSq() || nearestHit == null))
+                        if (hit != null && (hit.Position.LengthSq() < nearestHit?.Position.LengthSq() || nearestHit == null))
                         {
-                            outputImage.SetPixel(x, y, hit.Material.Type == Material.MaterialType.Diffuse ? diffuseColor(hit) : hit.Material.Color);
+                            HashSet<PointLight> visibleLights = GetVisibleLights(entity, hit);
+                            outputImage.SetPixel(x, y, PixelColor(entity, hit, visibleLights));
                             nearestHit = hit;
                         }
                     }
                 }
             }
         }
-        private Color diffuseColor(RayHit hit)
+
+        private HashSet<PointLight> GetVisibleLights(SceneEntity entity, RayHit hit)
         {
-            Color color = new Color(0, 0, 0);
-            Color subcolor;
+            HashSet<PointLight> visibleLights = new HashSet<PointLight>();
             foreach (PointLight light in this.lights)
             {
-                subcolor = hit.Material.Color * light.Color * hit.Normal.Dot(light.Position);
-                if (subcolor.R >= 0 && subcolor.G >= 0 && subcolor.B >= 0)
+                Ray shadowRay = new Ray(hit.Position, (light.Position - hit.Position).Normalized());
+                bool isVisible = true;
+                foreach (SceneEntity blockingEntity in this.entities)
                 {
-                    color += subcolor;
+                    if (blockingEntity != entity && blockingEntity.Intersect(shadowRay) != null)
+                    {
+                        isVisible = false;
+                        break;
+                    }
+                }
+                if (isVisible)
+                {
+                    visibleLights.Add(light);
                 }
             }
-            return color;
+            return visibleLights;
+        }
+
+        private Color PixelColor(SceneEntity entity, RayHit hit, HashSet<PointLight> visibleLights)
+        {
+            if (visibleLights.Count == 0)
+            {
+                return new Color(0, 0, 0);
+            }
+            switch (entity.Material.Type)
+            {
+                case Material.MaterialType.Diffuse:
+                    Color color = new Color(0, 0, 0);
+                    Color subcolor;
+                    foreach (PointLight light in visibleLights)
+                    {
+                        subcolor = hit.Material.Color * light.Color * hit.Normal.Dot((light.Position - hit.Position).Normalized());
+                        if (subcolor.R >= 0 && subcolor.G >= 0 && subcolor.B >= 0)
+                        {
+                            color += subcolor;
+                        }
+                    }
+                    return color;
+                default:
+                    return entity.Material.Color;
+            }
         }
     }
 }
