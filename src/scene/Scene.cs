@@ -58,6 +58,16 @@ namespace RayTracer
                     outputImage.SetPixel(x, y, new Color(0, 0, 0));
                     Vector3 coordinates = new Vector3((x - outputImage.Width) / 2, ((outputImage.Height - 1) / 2) - y, z);
                     Ray ray = new Ray(new Vector3(0, 0, 0), coordinates.Normalized());
+                    RayHit? nearestHit = null;
+                    foreach (SceneEntity entity in this.entities)
+                    {
+                        RayHit hit = entity.Intersect(ray);
+                        if (hit != null && (hit?.Position.Length() < nearestHit?.Position.Length() || nearestHit == null))
+                        {
+                            outputImage.SetPixel(x, y, entity.Material.Color);
+                            nearestHit = hit;
+                        }
+                    }
                 }
             }
         }
