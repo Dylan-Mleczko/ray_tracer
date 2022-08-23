@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 
+# nullable enable
+
 namespace RayTracer
 {
     /// <summary>
@@ -56,20 +58,36 @@ namespace RayTracer
                 for (int y = 0; y < outputImage.Height; y++)
                 {
                     outputImage.SetPixel(x, y, new Color(0, 0, 0));
-                    Vector3 coordinates = new Vector3((x - outputImage.Width) / 2, ((outputImage.Height - 1) / 2) - y, z);
+                    double normX = (x + 0.5) / outputImage.Width;
+                    double normY = (y + 0.5) / outputImage.Height;
+                    Vector3 coordinates = new Vector3(outputImage.Width * (normX - 0.5), outputImage.Height * (0.5 - normY), z);
                     Ray ray = new Ray(new Vector3(0, 0, 0), coordinates.Normalized());
                     RayHit? nearestHit = null;
                     foreach (SceneEntity entity in this.entities)
                     {
                         RayHit hit = entity.Intersect(ray);
-                        if (hit != null && (hit?.Position.Length() < nearestHit?.Position.Length() || nearestHit == null))
+                        if (hit != null && (hit?.Position.LengthSq() < nearestHit?.Position.LengthSq() || nearestHit == null))
                         {
-                            outputImage.SetPixel(x, y, entity.Material.Color);
+                            outputImage.SetPixel(x, y, hit.Material.Type == Material.MaterialType.Diffuse ? diffuseColor(hit) : hit.Material.Color);
                             nearestHit = hit;
                         }
                     }
                 }
             }
+        }
+        private Color diffuseColor(RayHit hit)
+        {
+            Color color = new Color(0, 0, 0);
+            Color subcolor;
+            foreach (PointLight light in this.lights)
+            {
+                subcolor = hit.Material.Color * light.Color * hit.Normal.Dot(light.Position);
+                if (subcolor.R >= 0 && subcolor.G >= 0 && subcolor.B >= 0)
+                {
+                    color += subcolor;
+                }
+            }
+            return color;
         }
     }
 }

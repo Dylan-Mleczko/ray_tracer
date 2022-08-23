@@ -35,9 +35,9 @@ namespace RayTracer
             if (Math.Abs(denominator) > double.Epsilon)
             {
                 double time = this.normal.Dot(this.center - ray.Origin) / denominator;
-                if (time > float.Epsilon)
+                if (time > double.Epsilon)
                 {
-                    return new RayHit(ray.Origin + time * ray.Direction, this.normal, ray.Direction, null);
+                    return new RayHit(ray.Origin + time * ray.Direction, this.normal, ray.Direction, this.material);
                 }
             }
             return null;
