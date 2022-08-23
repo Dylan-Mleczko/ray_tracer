@@ -31,7 +31,15 @@ namespace RayTracer
         /// <returns>Hit data (or null if no intersection)</returns>
         public RayHit Intersect(Ray ray)
         {
-            // Write your code here...
+            double denominator = this.normal.Dot(ray.Direction);
+            if (Math.Abs(denominator) > double.Epsilon)
+            {
+                double time = this.normal.Dot(this.center - ray.Origin) / denominator;
+                if (time > float.Epsilon)
+                {
+                    return new RayHit(ray.Origin + time * ray.Direction, this.normal, ray.Direction, null);
+                }
+            }
             return null;
         }
 
