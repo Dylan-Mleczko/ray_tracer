@@ -120,9 +120,40 @@ namespace RayTracer
                         }
                     }
                     return color;
+                case Material.MaterialType.Reflective:
+                    return ReflectedColor(entity, hit);
                 default:
                     return entity.Material.Color;
             }
+        }
+
+        private Color ReflectedColor(SceneEntity entity, RayHit currentHit)
+        {
+            Vector3 normalisedNormal = currentHit.Normal.Normalized();
+            Ray reflectedRay = new Ray(currentHit.Position, currentHit.Incident - 2 * currentHit.Incident.Dot(normalisedNormal) * normalisedNormal);
+            RayHit? nearestHit = null;
+            SceneEntity? hitEntity = null;
+            foreach (SceneEntity targetEntity in this.entities)
+            {
+                if (targetEntity != entity)
+                {
+                    RayHit hit = targetEntity.Intersect(reflectedRay);
+                    if (hit != null && (hit.Position.LengthSq() < nearestHit?.Position.LengthSq() || nearestHit == null))
+                    {
+                        nearestHit = hit;
+                        hitEntity = targetEntity;
+                    }
+                }
+            }
+            if (nearestHit == null || hitEntity == null)
+            {
+                return new Color(0, 0, 0);
+            }
+            if (hitEntity.Material.Type != Material.MaterialType.Reflective)
+            {
+                return hitEntity.Material.Color;
+            }
+            return ReflectedColor(hitEntity, nearestHit);
         }
     }
 }
