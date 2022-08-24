@@ -57,22 +57,22 @@ namespace RayTracer
             {
                 for (int y = 0; y < outputImage.Height; y++)
                 {
-                    outputImage.SetPixel(x, y, new Color(0, 0, 0));
                     double normX = (x + 0.5) / outputImage.Width;
                     double normY = (y + 0.5) / outputImage.Height;
                     Vector3 coordinates = new Vector3(outputImage.Width * (normX - 0.5), outputImage.Height * (0.5 - normY), z);
                     Ray ray = new Ray(new Vector3(0, 0, 0), coordinates.Normalized());
                     RayHit? nearestHit = null;
+                    SceneEntity? hitEntity = null;
                     foreach (SceneEntity entity in this.entities)
                     {
                         RayHit hit = entity.Intersect(ray);
                         if (hit != null && (hit.Position.LengthSq() < nearestHit?.Position.LengthSq() || nearestHit == null))
                         {
-                            HashSet<PointLight> visibleLights = GetVisibleLights(entity, hit);
-                            outputImage.SetPixel(x, y, PixelColor(entity, hit, visibleLights));
                             nearestHit = hit;
+                            hitEntity = entity;
                         }
                     }
+                    outputImage.SetPixel(x, y, hitEntity != null && nearestHit != null ? PixelColor(hitEntity, nearestHit, GetVisibleLights(hitEntity, nearestHit), false) : new Color(0, 0, 0));
                 }
             }
         }
@@ -100,7 +100,7 @@ namespace RayTracer
             return visibleLights;
         }
 
-        private Color PixelColor(SceneEntity entity, RayHit hit, HashSet<PointLight> visibleLights)
+        private Color PixelColor(SceneEntity entity, RayHit hit, HashSet<PointLight> visibleLights, bool inSphere)
         {
             if (visibleLights.Count == 0)
             {
@@ -121,13 +121,15 @@ namespace RayTracer
                     }
                     return color;
                 case Material.MaterialType.Reflective:
-                    return ReflectedColor(entity, hit);
+                    return ReflectedColor(entity, hit, visibleLights);
+                case Material.MaterialType.Refractive:
+                    return RefractedColor(entity, hit, visibleLights, inSphere);
                 default:
                     return entity.Material.Color;
             }
         }
 
-        private Color ReflectedColor(SceneEntity entity, RayHit currentHit)
+        private Color ReflectedColor(SceneEntity entity, RayHit currentHit, HashSet<PointLight> visibleLights)
         {
             Vector3 normalisedNormal = currentHit.Normal.Normalized();
             Ray reflectedRay = new Ray(currentHit.Position, currentHit.Incident - 2 * currentHit.Incident.Dot(normalisedNormal) * normalisedNormal);
@@ -145,15 +147,31 @@ namespace RayTracer
                     }
                 }
             }
-            if (nearestHit == null || hitEntity == null)
+            return hitEntity != null && nearestHit != null ? PixelColor(hitEntity, nearestHit, GetVisibleLights(hitEntity, nearestHit), false) : new Color(0, 0, 0);
+        }
+
+        private Color RefractedColor(SceneEntity entity, RayHit currentHit, HashSet<PointLight> visibleLights, bool inSphere)
+        {
+            double refractiveIndexRatio = inSphere ? entity.Material.RefractiveIndex : 1 / entity.Material.RefractiveIndex;
+            double cosI = Math.Abs(currentHit.Normal.Dot(currentHit.Incident));
+            double sinT2 = Math.Pow(refractiveIndexRatio, 2) * (1 - Math.Pow(cosI, 2));
+            if (sinT2 > 1)
             {
                 return new Color(0, 0, 0);
             }
-            if (hitEntity.Material.Type != Material.MaterialType.Reflective)
+            Ray refractedRay = new Ray(currentHit.Position, refractiveIndexRatio * currentHit.Incident + (refractiveIndexRatio * cosI - Math.Sqrt(1 - sinT2)) * currentHit.Normal);
+            RayHit? nearestHit = null;
+            SceneEntity? hitEntity = null;
+            foreach (SceneEntity targetEntity in this.entities)
             {
-                return hitEntity.Material.Color;
+                RayHit hit = targetEntity.Intersect(refractedRay);
+                if (hit != null && hit != currentHit && (hit.Position.LengthSq() < nearestHit?.Position.LengthSq() || nearestHit == null))
+                {
+                    nearestHit = hit;
+                    hitEntity = targetEntity;
+                }
             }
-            return ReflectedColor(hitEntity, nearestHit);
+            return hitEntity != null && nearestHit != null ? PixelColor(hitEntity, nearestHit, GetVisibleLights(hitEntity, nearestHit), !inSphere) : new Color(0, 0, 0);
         }
     }
 }

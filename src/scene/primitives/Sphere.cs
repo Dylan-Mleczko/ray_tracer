@@ -38,12 +38,12 @@ namespace RayTracer
                 return null;
             }
             double d2 = length.Dot(length) - Math.Pow(tca, 2);
-            double r2 = Math.Pow(this.radius, 2);
-            if (d2 > r2)
+            double radius2 = Math.Pow(this.radius, 2);
+            if (d2 > radius2)
             {
                 return null;
             }
-            double thc = Math.Sqrt(r2 - d2);
+            double thc = Math.Sqrt(radius2 - d2);
             double time0 = tca - thc;
             double time1 = tca + thc;
             if (time0 > time1)

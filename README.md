@@ -20,7 +20,7 @@
 - [X] Stage 2.1 - Diffuse materials
 - [X] Stage 2.2 - Shadow rays
 - [X] Stage 2.3 - Reflective materials
-- [ ] Stage 2.4 - Refractive materials
+- [X] Stage 2.4 - Refractive materials
 - [ ] Stage 2.5 - The Fresnel effect
 - [ ] Stage 2.6 - Anti-aliasing
 
