@@ -72,7 +72,7 @@ namespace RayTracer
                             hitEntity = entity;
                         }
                     }
-                    outputImage.SetPixel(x, y, hitEntity != null && nearestHit != null ? PixelColor(hitEntity, nearestHit, GetVisibleLights(hitEntity, nearestHit), false) : new Color(0, 0, 0));
+                    outputImage.SetPixel(x, y, hitEntity != null && nearestHit != null ? PixelColor(outputImage, x, y, hitEntity, nearestHit, GetVisibleLights(hitEntity, nearestHit), false) : new Color(0, 0, 0));
                 }
             }
         }
@@ -100,7 +100,7 @@ namespace RayTracer
             return visibleLights;
         }
 
-        private Color PixelColor(SceneEntity entity, RayHit hit, HashSet<PointLight> visibleLights, bool inSphere)
+        private Color PixelColor(Image outputImage, int x, int y, SceneEntity entity, RayHit hit, HashSet<PointLight> visibleLights, bool inSphere)
         {
             if (visibleLights.Count == 0)
             {
@@ -121,15 +121,15 @@ namespace RayTracer
                     }
                     return color;
                 case Material.MaterialType.Reflective:
-                    return ReflectedColor(entity, hit, visibleLights);
+                    return ReflectedColor(outputImage, x, y, entity, hit, visibleLights);
                 case Material.MaterialType.Refractive:
-                    return RefractedColor(entity, hit, visibleLights, inSphere);
+                    return RefractedColor(outputImage, x, y, entity, hit, visibleLights, inSphere);
                 default:
                     return entity.Material.Color;
             }
         }
 
-        private Color ReflectedColor(SceneEntity entity, RayHit currentHit, HashSet<PointLight> visibleLights)
+        private Color ReflectedColor(Image outputImage, int x, int y, SceneEntity entity, RayHit currentHit, HashSet<PointLight> visibleLights)
         {
             Vector3 normalisedNormal = currentHit.Normal.Normalized();
             Ray reflectedRay = new Ray(currentHit.Position, currentHit.Incident - 2 * currentHit.Incident.Dot(normalisedNormal) * normalisedNormal);
@@ -147,12 +147,15 @@ namespace RayTracer
                     }
                 }
             }
-            return hitEntity != null && nearestHit != null ? PixelColor(hitEntity, nearestHit, GetVisibleLights(hitEntity, nearestHit), false) : new Color(0, 0, 0);
+            return hitEntity != null && nearestHit != null ? PixelColor(outputImage, x, y, hitEntity, nearestHit, GetVisibleLights(hitEntity, nearestHit), false) : new Color(0, 0, 0);
         }
 
-        private Color RefractedColor(SceneEntity entity, RayHit currentHit, HashSet<PointLight> visibleLights, bool inSphere)
+        private Color RefractedColor(Image outputImage, int x, int y, SceneEntity entity, RayHit currentHit, HashSet<PointLight> visibleLights, bool inSphere)
         {
-            double refractiveIndexRatio = inSphere ? entity.Material.RefractiveIndex : 1 / entity.Material.RefractiveIndex;
+            double refractiveIndex1 = inSphere ? entity.Material.RefractiveIndex : 1;
+            double refractiveIndex2 = inSphere ? 1 : entity.Material.RefractiveIndex;
+            double refractiveIndexRatio = refractiveIndex1 / refractiveIndex2;
+            double fresnelProportion = FresnelProportion(refractiveIndex1, refractiveIndex2, currentHit.Incident, currentHit.Normal.Normalized());
             double cosI = Math.Abs(currentHit.Normal.Dot(currentHit.Incident));
             double sinT2 = Math.Pow(refractiveIndexRatio, 2) * (1 - Math.Pow(cosI, 2));
             if (sinT2 > 1)
@@ -171,7 +174,29 @@ namespace RayTracer
                     hitEntity = targetEntity;
                 }
             }
-            return hitEntity != null && nearestHit != null ? PixelColor(hitEntity, nearestHit, GetVisibleLights(hitEntity, nearestHit), !inSphere) : new Color(0, 0, 0);
+            if (hitEntity != null && nearestHit != null)
+            {
+                HashSet<PointLight> newVisibleLights = GetVisibleLights(hitEntity, nearestHit);
+                outputImage.SetPixel(x, y, ReflectedColor(outputImage, x, y, hitEntity, nearestHit, newVisibleLights) * fresnelProportion);
+                return PixelColor(outputImage, x, y, hitEntity, nearestHit, newVisibleLights, !inSphere) * (1 - fresnelProportion);
+            }
+            return new Color(0, 0, 0);
+        }
+
+        private double FresnelProportion(double refractiveIndex1, double refractiveIndex2, Vector3 incidentVector, Vector3 normalVector)
+        {
+            double refraction = Math.Pow((refractiveIndex1 - refractiveIndex2) / (refractiveIndex1 + refractiveIndex2), 2);
+            double cosX = -normalVector.Dot(incidentVector);
+            if (refractiveIndex1 > refractiveIndex2)
+            {
+                double sinT2 = Math.Pow(refractiveIndex1, 2) * (1 - Math.Pow(cosX, 2));
+                if (sinT2 > 1)
+                {
+                    return 1;
+                }
+                cosX = Math.Sqrt(1 - sinT2);
+            }
+            return refraction + (1 - refraction) * Math.Pow(1 - cosX, 5);
         }
     }
 }
