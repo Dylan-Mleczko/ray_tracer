@@ -30,7 +30,7 @@
 - [ ] Option B - Ambient lighting/occlusion (+6)
 - [ ] Option C - OBJ models (+6)
 - [X] Option D - Glossy materials (+3)
-- [ ] Option E - Custom camera orientation (+3)
+- [X] Option E - Custom camera orientation (+3)
 - [ ] Option F - Beer's law (+3)
 - [ ] Option G - Depth of field (+3)
 

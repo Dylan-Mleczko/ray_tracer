@@ -55,6 +55,7 @@ namespace RayTracer
         public void Render(Image outputImage)
         {
             double z = outputImage.Width / (2 * Math.Tan(Math.PI / 6));
+            double angle = options.CameraAngle * (Math.PI / 180);
             for (int x = 0; x < outputImage.Width; x++)
             {
                 for (int y = 0; y < outputImage.Height; y++)
@@ -67,7 +68,7 @@ namespace RayTracer
                             double normX = (x + (i / (options.AAMultiplier + 1.0))) / outputImage.Width;
                             double normY = (y + (j / (options.AAMultiplier + 1.0))) / outputImage.Height;
                             Vector3 coordinates = new Vector3(outputImage.Width * (normX - 0.5), outputImage.Height * (0.5 - normY), z);
-                            (RayHit? nearestHit, SceneEntity? hitEntity) = NearestHit(new Ray(new Vector3(0, 0, 0), coordinates.Normalized()));
+                            (RayHit? nearestHit, SceneEntity? hitEntity) = NearestHit(new Ray(options.CameraPosition, (Math.Cos(angle) * coordinates + (1 - Math.Cos(angle)) * options.CameraAxis.Dot(coordinates) * options.CameraAxis + Math.Sin(angle) * options.CameraAxis.Cross(coordinates)).Normalized()));
                             pixelColors.Add(hitEntity != null && nearestHit != null ? PixelColor(hitEntity, nearestHit, false, 10) : new Color(0, 0, 0));
                         }
                     }
