@@ -88,7 +88,7 @@ namespace RayTracer
             foreach (SceneEntity entity in this.entities)
             {
                 RayHit hit = entity.Intersect(ray);
-                if (hit != null && (nearestHit == null || (hit.Position - ray.Origin).LengthSq() < (nearestHit.Position - ray.Origin).LengthSq()))
+                if (hit != null && (hit.Position - ray.Origin).LengthSq() > Double.Epsilon && (nearestHit == null || (hit.Position - ray.Origin).LengthSq() < (nearestHit.Position - ray.Origin).LengthSq()))
                 {
                     nearestHit = hit;
                     hitEntity = entity;
@@ -153,12 +153,14 @@ namespace RayTracer
                 case Material.MaterialType.Refractive:
                     double refractiveIndex1 = inShape ? entity.Material.RefractiveIndex : 1;
                     double refractiveIndex2 = inShape ? 1 : entity.Material.RefractiveIndex;
-                    if (inShape)
-                    {
-                        return RefractedColor(entity, hit, refractiveIndex1, refractiveIndex2, inShape, depth - 1);
-                    }
-                    double fresnelProportion = FresnelProportion(refractiveIndex1, refractiveIndex2, hit.Incident, hit.Normal.Normalized());
-                    return RefractedColor(entity, hit, refractiveIndex1, refractiveIndex2, inShape, depth - 1) * fresnelProportion + ReflectedColor(entity, hit, inShape, depth - 1) * (1 - fresnelProportion);
+                    double refractiveIndexRatio = refractiveIndex1 / refractiveIndex2;
+                    //if (inShape)
+                    //{
+                    //    return RefractedColor(entity, hit, refractiveIndexRatio, inShape, depth - 1);
+                    //}
+                    double fresnelProportion = FresnelProportion(refractiveIndex2, hit);
+                    //Console.WriteLine(fresnelProportion);
+                    return RefractedColor(entity, hit, refractiveIndexRatio, inShape, depth - 1) * (1 - fresnelProportion) + ReflectedColor(entity, hit, inShape, depth - 1) * fresnelProportion;
                 case Material.MaterialType.Glossy:
                     double REFLECTIVITY = 0.5;
                     Color colorSum = new Color(0, 0, 0);
@@ -183,8 +185,8 @@ namespace RayTracer
 
         private Color ReflectedColor(SceneEntity entity, RayHit currentHit, bool inShape, int depth)
         {
-            Vector3 normalisedNormal = currentHit.Normal.Normalized();
-            Ray reflectedRay = new Ray(currentHit.Position, currentHit.Incident - 2 * currentHit.Incident.Dot(normalisedNormal) * normalisedNormal);
+            Vector3 reflectionDirection = currentHit.Incident - 2 * currentHit.Incident.Dot(currentHit.Normal) * currentHit.Normal;
+            Ray reflectedRay = new Ray(reflectionDirection.Dot(currentHit.Normal) < 0 ? currentHit.Position - currentHit.Normal * 0.00001 : currentHit.Position + currentHit.Normal * 0.00001, reflectionDirection.Normalized());
             RayHit? nearestHit = null;
             SceneEntity? hitEntity = null;
             foreach (SceneEntity targetEntity in this.entities)
@@ -202,16 +204,16 @@ namespace RayTracer
             return hitEntity != null && nearestHit != null ? PixelColor(hitEntity, nearestHit, inShape, depth - 1) : new Color(0, 0, 0);
         }
 
-        private Color RefractedColor(SceneEntity entity, RayHit currentHit, double refractiveIndex1, double refractiveIndex2, bool inShape, int depth)
+        private Color RefractedColor(SceneEntity entity, RayHit currentHit, double refractiveIndexRatio, bool inShape, int depth)
         {
-            double refractiveIndexRatio = refractiveIndex1 / refractiveIndex2;
             double cosI = Math.Abs(currentHit.Normal.Dot(currentHit.Incident));
             double sinT2 = Math.Pow(refractiveIndexRatio, 2) * (1 - Math.Pow(cosI, 2));
             if (sinT2 > 1)
             {
                 return new Color(0, 0, 0);
             }
-            Ray refractedRay = new Ray(currentHit.Position, refractiveIndexRatio * currentHit.Incident + (refractiveIndexRatio * cosI - Math.Sqrt(1 - sinT2)) * currentHit.Normal);
+            Vector3 refractionDirection = refractiveIndexRatio * currentHit.Incident + (refractiveIndexRatio * cosI - Math.Sqrt(1 - sinT2)) * currentHit.Normal;
+            Ray refractedRay = new Ray(refractionDirection.Dot(currentHit.Normal) < 0 ? currentHit.Position - currentHit.Normal * 0.00001 : currentHit.Position + currentHit.Normal * 0.00001, refractionDirection.Normalized());
             RayHit? nearestHit = null;
             SceneEntity? hitEntity = null;
             foreach (SceneEntity targetEntity in this.entities)
@@ -226,20 +228,22 @@ namespace RayTracer
             return hitEntity != null && nearestHit != null ? PixelColor(hitEntity, nearestHit, !inShape, depth - 1) : new Color(0, 0, 0);
         }
 
-        private double FresnelProportion(double refractiveIndex1, double refractiveIndex2, Vector3 incidentVector, Vector3 normalVector)
+        private Double FresnelProportion(Double refractiveIndex, RayHit hit)
         {
-            double refraction = Math.Pow((refractiveIndex1 - refractiveIndex2) / (refractiveIndex1 + refractiveIndex2), 2);
-            double cosX = -normalVector.Dot(incidentVector);
-            if (refractiveIndex1 > refractiveIndex2)
+            double cosi = Math.Clamp(hit.Incident.Dot(hit.Normal), -1, 1);
+            double etai = cosi > 0 ? refractiveIndex : 1.0;
+            double etat = cosi > 0 ? 1.0 : refractiveIndex;
+            double sint = etai / etat * Math.Sqrt(Math.Max(0, 1 - Math.Pow(cosi, 2)));
+            double kr = 1.0;
+            if (sint < 1)
             {
-                double sinT2 = Math.Pow(refractiveIndex1, 2) * (1 - Math.Pow(cosX, 2));
-                if (sinT2 > 1)
-                {
-                    return 1;
-                }
-                cosX = Math.Sqrt(1 - sinT2);
+                double cost = Math.Sqrt(Math.Max(0, 1 - Math.Pow(sint, 2)));
+                cosi = Math.Abs(cosi);
+                double Rs = ((etat * cosi) - (etai * cost)) / ((etat * cosi) + (etai * cost));
+                double Rp = ((etai * cosi) - (etat * cost)) / ((etai * cosi) + (etat * cost));
+                kr = (Rs * Rs + Rp * Rp) / 2;
             }
-            return refraction + (1 - refraction) * Math.Pow(1 - cosX, 5);
+            return kr;
         }
     }
 }

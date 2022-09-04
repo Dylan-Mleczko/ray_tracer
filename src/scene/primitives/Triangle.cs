@@ -36,7 +36,7 @@ namespace RayTracer
             Vector3 v0v2 = this.v2 - this.v0;
             Vector3 normal = v0v1.Cross(v0v2);
             double dotDirection = normal.Dot(ray.Direction);
-            if (-dotDirection < double.Epsilon)
+            if (Math.Abs(dotDirection) < double.Epsilon)
             {
                 return null;
             }

@@ -61,7 +61,12 @@ namespace RayTracer
                 }
             }
             Vector3 hitLocation = ray.Origin + time0 * ray.Direction;
-            return new RayHit(hitLocation, (hitLocation - this.center).Normalized(), ray.Direction, this.material);
+            Vector3 hitNormal = (hitLocation - this.center).Normalized();
+            if (ray.Direction.Dot(hitNormal) > 0)
+            {
+                hitNormal *= -1;
+            }
+            return new RayHit(hitLocation, hitNormal, ray.Direction, this.material);
         }
 
         /// <summary>
