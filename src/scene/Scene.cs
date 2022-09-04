@@ -69,7 +69,7 @@ namespace RayTracer
                             double normY = (y + (j / (options.AAMultiplier + 1.0))) / outputImage.Height;
                             Vector3 coordinates = new Vector3(outputImage.Width * (normX - 0.5), outputImage.Height * (0.5 - normY), z);
                             (RayHit? nearestHit, SceneEntity? hitEntity) = NearestHit(new Ray(options.CameraPosition, (Math.Cos(angle) * coordinates + (1 - Math.Cos(angle)) * options.CameraAxis.Dot(coordinates) * options.CameraAxis + Math.Sin(angle) * options.CameraAxis.Cross(coordinates)).Normalized()));
-                            pixelColors.Add(hitEntity != null && nearestHit != null ? PixelColor(hitEntity, nearestHit, false, 10) : new Color(0, 0, 0));
+                            pixelColors.Add(hitEntity != null && nearestHit != null ? PixelColor(hitEntity, nearestHit, false, 5) : new Color(0, 0, 0));
                         }
                     }
                     Color colorSum = new Color(0, 0, 0);
@@ -138,36 +138,21 @@ namespace RayTracer
             switch (entity.Material.Type)
             {
                 case Material.MaterialType.Diffuse:
-                    Color color = new Color(0, 0, 0);
-                    Color subcolor;
-                    foreach (PointLight light in GetVisibleLights(entity, hit))
-                    {
-                        subcolor = hit.Material.Color * light.Color * hit.Normal.Dot((light.Position - hit.Position).Normalized());
-                        if (subcolor.R >= 0 && subcolor.G >= 0 && subcolor.B >= 0)
-                        {
-                            color += subcolor;
-                        }
-                    }
-                    return color;
+                    return DiffusedColor(entity, hit);
                 case Material.MaterialType.Reflective:
                     return ReflectedColor(entity, hit, inShape, depth - 1);
                 case Material.MaterialType.Refractive:
                     double refractiveIndex1 = inShape ? entity.Material.RefractiveIndex : 1;
                     double refractiveIndex2 = inShape ? 1 : entity.Material.RefractiveIndex;
                     double refractiveIndexRatio = refractiveIndex1 / refractiveIndex2;
-                    //if (inShape)
-                    //{
-                    //    return RefractedColor(entity, hit, refractiveIndexRatio, inShape, depth - 1);
-                    //}
                     double fresnelProportion = FresnelProportion(refractiveIndex2, hit);
-                    //Console.WriteLine(fresnelProportion);
-                    return RefractedColor(entity, hit, refractiveIndexRatio, inShape, depth - 1) * (1 - fresnelProportion) + ReflectedColor(entity, hit, inShape, depth - 1) * fresnelProportion;
+                    return RefractedColor(entity, hit, refractiveIndexRatio, inShape, depth - 1) * (1 - fresnelProportion) + ReflectedColor(entity, hit, inShape, depth - 1) * fresnelProportion + DiffusedColor(entity, hit);
                 case Material.MaterialType.Glossy:
                     double REFLECTIVITY = 0.5;
                     Color colorSum = new Color(0, 0, 0);
                     Vector3 normalisedNormal = hit.Normal.Normalized();
                     Ray reflectedRay = new Ray(hit.Position, hit.Incident - 2 * hit.Incident.Dot(normalisedNormal) * normalisedNormal);
-                    for (int i = 0; i < 80; i++)
+                    for (int i = 0; i < 10; i++)
                     {
                         double theta = Math.Acos(Math.Pow(random.NextDouble(), REFLECTIVITY));
                         double phi = 2 * Math.PI * random.NextDouble();
@@ -178,10 +163,25 @@ namespace RayTracer
                         (RayHit? nearestHit, SceneEntity? hitEntity) = NearestHit(new Ray(reflectedRay.Origin, (x * u + y * v + reflectedRay.Direction).Normalized()));
                         colorSum += (hitEntity != null && nearestHit != null ? PixelColor(hitEntity, nearestHit, inShape, depth - 1) : new Color(0, 0, 0)) * REFLECTIVITY;
                     }
-                    return entity.Material.Color + colorSum / 80;
+                    return entity.Material.Color + colorSum / 10;
                 default:
                     return entity.Material.Color;
             }
+        }
+
+        private Color DiffusedColor(SceneEntity entity, RayHit hit)
+        {
+            Color color = new Color(0, 0, 0);
+            Color subcolor;
+            foreach (PointLight light in GetVisibleLights(entity, hit))
+            {
+                subcolor = hit.Material.Color * light.Color * hit.Normal.Dot((light.Position - hit.Position).Normalized());
+                if (subcolor.R >= 0 && subcolor.G >= 0 && subcolor.B >= 0)
+                {
+                    color += subcolor;
+                }
+            }
+            return color;
         }
 
         private Color ReflectedColor(SceneEntity entity, RayHit currentHit, bool inShape, int depth)
@@ -226,7 +226,12 @@ namespace RayTracer
                     hitEntity = targetEntity;
                 }
             }
-            return hitEntity != null && nearestHit != null ? PixelColor(hitEntity, nearestHit, !inShape, depth - 1) : new Color(0, 0, 0);
+            if (hitEntity != null && nearestHit != null)
+            {
+                double distance = (currentHit.Position - nearestHit.Position).Length();
+                return PixelColor(hitEntity, nearestHit, !inShape, depth - 1) * new Color(Math.Exp(-entity.Material.Color.R * distance), Math.Exp(-entity.Material.Color.G * distance), Math.Exp(-entity.Material.Color.B * distance));
+            }
+            return new Color(0, 0, 0);
         }
 
         private Double FresnelProportion(Double refractiveIndex, RayHit hit)

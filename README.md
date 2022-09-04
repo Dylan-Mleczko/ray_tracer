@@ -31,55 +31,31 @@
 - [ ] Option C - OBJ models (+6)
 - [X] Option D - Glossy materials (+3)
 - [X] Option E - Custom camera orientation (+3)
-- [ ] Option F - Beer's law (+3)
+- [X] Option F - Beer's law (+3)
 - [ ] Option G - Depth of field (+3)
 
-*Please summarise your approach(es) to stage 3 here.*
+- Option D: Continuously generate random reflections of light off glossy objects via cosine distribution to achieve more realistic glossy reflection than simply applying standard reflection, and add average reflected colour multiplied by 0.5 (fraction acheived via trial-and-error) to colour of glossy object.
+- Option E: Employ Rodrigue's rotation formula in order to calculate the new coordinate system.
+- Option F: Employ Beer's law in order to calculate the required colour of refractive objects, and additionally add the diffused colour of the refractive object when calculating its colour.
 
 ## Final scene render
 
-Be sure to replace ```/images/final_scene.png``` with your final render so it
-shows up here.
-
 ![My final render](images/final_scene.png)
 
-This render took **x** minutes and **y** seconds on my PC.
+This render took **10** seconds on my PC.
 
 I used the following command to render the image exactly as shown:
 
 ```
-dotnet run -- (... your command line args)
+dotnet run -- -f tests/final_scene.txt -o images/final_scene.png --cam-pos 0,-0.5,0 --cam-axis 1,0,0 --cam-angle -15
 ```
-
-## Sample outputs
-
-We have provided you with some sample tests located at ```/tests/*```. So you
-have some point of comparison, here are the outputs our ray tracer solution
-produces for given command line inputs (for the first two stages, left and right
-respectively):
-
-###### Sample 1
-
-```
-dotnet run -- -f tests/sample_scene_1.txt -o images/sample_scene_1.png -x 4
-```
-
-<p float="left">
-  <img src="images/sample_scene_1_s1.png" />
-  <img src="images/sample_scene_1_s2.png" /> 
-</p>
-
-###### Sample 2
-
-```
-dotnet run -- -f tests/sample_scene_2.txt -o images/sample_scene_2.png -x 4
-```
-
-<p float="left">
-  <img src="images/sample_scene_2_s1.png" />
-  <img src="images/sample_scene_2_s2.png" /> 
-</p>
 
 ## References
 
-*You must list any references you used - add them here!*
+- https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula (custom camera orientation formula)
+- https://math.stackexchange.com/questions/13261/how-to-get-a-reflection-vector (reflection vector)
+- https://stackoverflow.com/questions/29758545/how-to-find-refraction-vector-from-incoming-vector-and-surface-normal (refraction vector)
+- https://en.wikipedia.org/wiki/Fresnel_equations (Fresnel proportion)
+- https://stackoverflow.com/questions/15846867/glossy-reflection-in-ray-tracing (glossy reflection)
+- https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle/ray-triangle-intersection-geometric-solution (triangle intersection)
+- https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection (sphere intersection)
